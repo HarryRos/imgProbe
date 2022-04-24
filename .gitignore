@@ -32,4 +32,4 @@
 *.app
 
 # Directories with data
-sensorData\**
+sensorData/**
