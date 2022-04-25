@@ -10,7 +10,7 @@ For the testing suite, refer to `imgProbeTesting.cpp` (see below for compilation
 
 # Dependencies
 
-    CImg libary (https://cimg.eu/): Used to write tiff images to disk
+CImg libary (https://cimg.eu/): Used to write tiff images to disk
 
 # imgProbeMain
 This executable is an example of the expected use of the imgProbe interface within a typical workflow.
@@ -21,8 +21,7 @@ This executable is an example of the expected use of the imgProbe interface with
     .\imgProbe.exe
 
 ## Expected output
-
-    The programme reads images of a predefined size (5x5) from the sensor, which render an off-centred cross shape with a pseudo-random grey value, and saves them with incremental numbers as filenames in .\sensorData.
+The programme reads images of a predefined size (5x5) from the sensor, which render an off-centred cross shape with a pseudo-random grey value, and saves them with incremental numbers as filenames in .\sensorData.
 
     Main thread: Calling sensor for new image.
     Main thread: Proceessing alternative task 1.
