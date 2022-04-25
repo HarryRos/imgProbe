@@ -11,13 +11,17 @@ enum INDUCED_ERROR
     RETURN_TIMEOUT,
     DELAY500,
     DELAY1100,
+    DELAY2000
 };
+
 extern INDUCED_ERROR errState;
-
-
-
 extern unsigned long imgSize; // This should be set by the hw initialisation procedure.
 
+// A routine to manually induce errors to the sensor.
+void induceError(INDUCED_ERROR err);
+
+// The setup routine was not provider, an ad-hoc routine was written for the initialisation.
+void initialiseSensor(unsigned long imgSize);
 
 // Actual hw library interface from here onwards.
 enum ERROR_TYPE

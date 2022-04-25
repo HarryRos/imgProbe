@@ -8,9 +8,9 @@
 int main()
 {
     // Initialisation
-    std::string outDir = "sensorData";
-    size_t imgDim = 5;
     IMAGE_TYPE probeType = US;
+    size_t imgDim = 5;
+    std::string outDir = "sensorData";
 
     // Create a new probe object
     imgSensor::ImgProbe imgProbe(probeType, imgDim, outDir);
@@ -22,9 +22,9 @@ int main()
             std::cout << "Main thread: Calling sensor for new image." << std::endl;
             auto imgCaptureTask = std::async(std::launch::async, &imgSensor::ImgProbe::captureImg, &imgProbe);
 
-            // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             std::cout << "Main thread: Proceessing alternative task 1." << std::endl;
-            // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             std::cout << "Main thread: Proceessing alternative task 2." << std::endl;
 
             std::cout << "Main thread: Finished alternative tasks and waiting for sensor." << std::endl;

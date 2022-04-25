@@ -8,6 +8,7 @@
 #include <future>
 #include <string>
 #include <thread>
+#include <float.h>
 
 #define cimg_use_tiff
 #include <CImg.h>
@@ -16,36 +17,56 @@ namespace imgSensor
 {
     ImgProbe::ImgProbe(IMAGE_TYPE probeType, size_t imgDim, std::string outDir) : probeType(probeType), imgDim(imgDim), outPath(std::filesystem::path(outDir)), counter(0)
     {
+        // Begin in an uninitialised state.
+        state = false;
+
         // Make sure that the requested image dimensions are valid.
         if (imgDim <= 0 || imgDim > MAX_IMG_DIM)
         {
             std::cerr << "Failed to initialise image probe: Invalid image dimension." << std::endl;
             state = false;
+            return;
+        }
+        else
+        {
+            initialiseSensor(imgDim); // Size of the image returned by the sensor.
         }
 
         // Check if the requested output path is indeed a directory.
-        if (!std::filesystem::is_directory(outPath))
+        if (std::filesystem::exists(outPath))
         {
-            std::cerr << "Failed to initialise image probe: Invalid output path." << std::endl;
-            state = false;
+            if (!std::filesystem::is_directory(outPath))
+            {
+                std::cerr << "Failed to initialise image probe: Invalid output path." << std::endl;
+                state = false;
+                return;
+            }
         }
-
-        // Create the output directory if it does not exist.
-        if (!std::filesystem::exists(outPath))
+        else
+        {
+            // Create the output directory if it does not exist.
             try
             {
-                std::filesystem::create_directory(outPath);
+                if (!std::filesystem::create_directory(outPath))
+                {
+                    std::cerr << "Failed to initialise image probe: Cannot create directory." << std::endl;
+                    state = false;
+                    return;
+                }
             }
             catch (const std::filesystem::filesystem_error &e)
             {
                 std::cerr << "Failed to initialise image probe: Cannot create directory." << e.what() << std::endl;
                 state = false;
+                return;
             }
             catch (...)
             {
                 std::cerr << "Failed to initialise image probe: Unknown filesystem error." << std::endl;
                 state = false;
+                return;
             }
+        }
 
         // Set the output file names format (5 spaces with leading zeros).
         fileNameFmt << std::setw(5) << std::setfill('0');
@@ -56,10 +77,15 @@ namespace imgSensor
         {
             std::cerr << "Failed to initialise image probe: Memory allocation error." << std::endl;
             state = false;
+            return;
         }
+
+        // Quiet exception mode for the CImg library (no popup menu)
+        cimg_library::cimg::exception_mode(0);
 
         // Initialisation succeeded.
         state = true;
+        return;
     };
 
     void ImgProbe::queryProbe(std::promise<bool> *promise)
@@ -71,6 +97,11 @@ namespace imgSensor
         {
         case ERROR_TYPE::OK:
         {
+            // Scale the range down from 64bit to 32bit so that it can be saved to a tiff file
+            auto scale_ratio = FLT_MAX/DBL_MAX;
+            for(size_t i=0 ; i<imgDim*imgDim ; i++)
+                imgData[i] *= scale_ratio;
+
             // Structure the imgData into a CImg object.
             // For efficiency, the data is not copied but the imgData array is shared by reference.
             cimg_library::CImg img(imgData, imgDim, imgDim, 1, 1, true);
@@ -82,12 +113,18 @@ namespace imgSensor
                 fileName << counter++ << ".tiff";
 
                 /**
-                 * Something weird is going on here: Although CImg seems to support doubles (64bit depth), save_tiff outputs 32bit tiffs. Thus, when read into imagej, these are imported as 32bit pixels. However, the (supposedly 32bit) pixels seem to support up to 64bit values, as required.
+                 * Something weird is going on here: Although CImg seems to support doubles (64bit depth), save_tiff outputs 32bit tiffs. Thus, the data was scaled beforehand to 32 bit.
                  *
                  * TODO: This needs to be investigated further.
                  * */
                 img.save_tiff((outPath / fileName.str()).string().c_str());
                 promise->set_value(true);
+                return;
+            }
+            catch (const cimg_library::CImgIOException &e)
+                {
+                std::cerr << "Failed to write tiff image to disk: " << e.what() << std::endl;
+                promise->set_value(false);
                 return;
             }
             catch (const std::exception &e)
